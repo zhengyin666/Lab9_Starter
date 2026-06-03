@@ -7,6 +7,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lab 9</title>
 
+  <script src="https://cdn.trackjs.com/agent/v3/latest/t.js"></script>
+<script>
+  window.TrackJS && TrackJS.install({ 
+    token: "07d9c5bd555a4da191a30f08f173a96f"
+    // for more configuration options, see https://docs.trackjs.com
+  });
+  
+</script>
   <style>
     button {
       margin: 3px;
@@ -24,10 +32,10 @@
     output {
       border: 1px solid gray;
       display: block;
-      height: 18px;
+      min-height: 18px;
       margin-top: 5px;
       padding: 5px;
-      width: 240px;
+      width: 260px;
     }
 
     main {
@@ -45,6 +53,18 @@
     #error-btns>* {
       padding: 8px 2px;
       width: 122px;
+    }
+
+    #status {
+      border: 1px solid gray;
+      margin-top: 25px;
+      padding: 10px;
+      width: 450px;
+      min-height: 40px;
+    }
+
+    #extra-btns {
+      margin-top: 25px;
     }
   </style>
 </head>
@@ -85,23 +105,284 @@
       <button>Console Trace</button>
       <button>Trigger a Global Error</button>
     </section>
+
+    <section id="extra-btns">
+      <button id="try-catch-btn">Try Catch Demo</button>
+      <button id="throw-btn">Throw Demo</button>
+      <button id="custom-error-btn">Custom Error Demo</button>
+    </section>
+
+    <section id="status">
+      No error yet.
+    </section>
   </main>
 
   <script>
-    let form = document.querySelector('form');
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      let output = document.querySelector('output');
-      let firstNum = document.querySelector('#first-num').value;
-      let secondNum = document.querySelector('#second-num').value;
-      let operator = document.querySelector('#operator').value;
-      output.innerHTML = eval(`${firstNum} ${operator} ${secondNum}`);
+    class InputError extends Error {
+      constructor(message, value) {
+        super(message);
+        this.name = 'InputError';
+        this.value = value;
+      }
+    }
+
+    const form = document.querySelector('form');
+    const output = document.querySelector('output');
+    const statusBox = document.querySelector('#status');
+    const errorBtns = Array.from(document.querySelectorAll('#error-btns > button'));
+
+    const user = {
+      name: 'Zhengyin Yang',
+      class: 'CSE 110',
+      lab: 'Lab 9'
+    };
+
+    const errorList = [
+      { type: 'InputError', message: 'Invalid input', level: 'low' },
+      { type: 'ReferenceError', message: 'Function is missing', level: 'high' },
+      { type: 'TypeError', message: 'Wrong object type', level: 'medium' }
+    ];
+
+    function updateStatus(message) {
+      statusBox.textContent = message;
+    }
+
+    function getResult(firstNum, operator, secondNum) {
+      const a = Number(firstNum);
+      const b = Number(secondNum);
+
+      if (firstNum === '') {
+        throw new InputError('First number is missing.', firstNum);
+      }
+
+      if (secondNum === '') {
+        throw new InputError('Second number is missing.', secondNum);
+      }
+
+      if (Number.isNaN(a)) {
+        throw new InputError('First input is not a number.', firstNum);
+      }
+
+      if (Number.isNaN(b)) {
+        throw new InputError('Second input is not a number.', secondNum);
+      }
+
+      if (operator === '/' && b === 0) {
+        throw new InputError('Cannot divide by zero.', secondNum);
+      }
+
+      if (operator === '+') return a + b;
+      if (operator === '-') return a - b;
+      if (operator === '*') return a * b;
+      if (operator === '/') return a / b;
+
+      throw new Error('Invalid operator.');
+    }
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+
+      const firstNum = document.querySelector('#first-num').value.trim();
+      const secondNum = document.querySelector('#second-num').value.trim();
+      const operator = document.querySelector('#operator').value;
+
+      try {
+        const result = getResult(firstNum, operator, secondNum);
+        output.textContent = result;
+        console.log('Calculation result:', result);
+        updateStatus('Calculation completed.');
+      } catch (err) {
+        output.textContent = 'Error: ' + err.message;
+        console.error('Calculator error:', err);
+        updateStatus(err.name + ': ' + err.message);
+
+        if (window.TrackJS) {
+          TrackJS.track(err);
+        }
+      } finally {
+        console.log('Calculator submit finished.');
+      }
     });
 
-    let errorBtns = Array.from(document.querySelectorAll('#error-btns > button'));
+    errorBtns.forEach(button => {
+      button.addEventListener('click', () => {
+        const text = button.textContent;
 
-    // Start your code here
-    // You may move this JS to another file if you wish
+        if (text === 'Console Log') {
+          console.log('Console log demo');
+          console.log(user);
+          updateStatus('console.log was used.');
+        }
+
+        else if (text === 'Console Error') {
+          console.error('Console error demo');
+          updateStatus('console.error was used.');
+        }
+
+        else if (text === 'Console Count') {
+          console.count('Console Count Demo');
+          updateStatus('console.count was used.');
+        }
+
+        else if (text === 'Console Warn') {
+          console.warn('Console warn demo');
+          updateStatus('console.warn was used.');
+        }
+
+        else if (text === 'Console Assert') {
+          console.assert(2 + 2 === 5, 'Assert failed because 2 + 2 is not 5.');
+          updateStatus('console.assert was used.');
+        }
+
+        else if (text === 'Console Clear') {
+          console.clear();
+          updateStatus('console.clear was used.');
+        }
+
+        else if (text === 'Console Dir') {
+          console.dir(document.querySelector('main'));
+          updateStatus('console.dir was used.');
+        }
+
+        else if (text === 'Console dirxml') {
+          console.dirxml(document.querySelector('form'));
+          updateStatus('console.dirxml was used.');
+        }
+
+        else if (text === 'Console Group Start') {
+          console.group('Lab 9 Console Group');
+          console.log('Inside the group');
+          console.log(user);
+          console.warn('Warning inside the group');
+          updateStatus('console.group was started.');
+        }
+
+        else if (text === 'Console Group End') {
+          console.log('Group ending');
+          console.groupEnd();
+          updateStatus('console.groupEnd was used.');
+        }
+
+        else if (text === 'Console Table') {
+          console.table(errorList);
+          updateStatus('console.table was used.');
+        }
+
+        else if (text === 'Start Timer') {
+          console.time('Lab 9 Timer');
+          updateStatus('Timer started.');
+        }
+
+        else if (text === 'End Timer') {
+          console.timeEnd('Lab 9 Timer');
+          updateStatus('Timer ended.');
+        }
+
+        else if (text === 'Console Trace') {
+          firstTraceFunction();
+          updateStatus('console.trace was used.');
+        }
+
+        else if (text === 'Trigger a Global Error') {
+          updateStatus('A global error was triggered.');
+          triggerGlobalError();
+        }
+      });
+    });
+
+    function firstTraceFunction() {
+      secondTraceFunction();
+    }
+
+    function secondTraceFunction() {
+      thirdTraceFunction();
+    }
+
+    function thirdTraceFunction() {
+      console.trace('Trace demo');
+    }
+
+    document.querySelector('#try-catch-btn').addEventListener('click', () => {
+      try {
+        const missingObject = null;
+        missingObject.name = 'test';
+      } catch (err) {
+        console.error('Try catch caught:', err);
+        updateStatus('Try catch caught: ' + err.message);
+
+        if (window.TrackJS) {
+          TrackJS.track(err);
+        }
+      } finally {
+        console.log('Try catch finally block ran.');
+      }
+    });
+
+    document.querySelector('#throw-btn').addEventListener('click', () => {
+      try {
+        const score = -10;
+
+        if (score < 0) {
+          throw new Error('Score cannot be negative.');
+        }
+
+        console.log('Score is valid.');
+      } catch (err) {
+        console.error('Thrown error caught:', err);
+        updateStatus('Thrown error caught: ' + err.message);
+
+        if (window.TrackJS) {
+          TrackJS.track(err);
+        }
+      }
+    });
+
+    document.querySelector('#custom-error-btn').addEventListener('click', () => {
+      try {
+        const input = 'hello';
+
+        if (Number.isNaN(Number(input))) {
+          throw new InputError('Custom input error: input must be a number.', input);
+        }
+      } catch (err) {
+        console.error('Custom error caught:', err);
+        console.log('Bad value:', err.value);
+        updateStatus(err.name + ': ' + err.message);
+
+        if (window.TrackJS) {
+          TrackJS.track(err);
+        }
+      }
+    });
+
+    function triggerGlobalError() {
+      missingFunctionForLab9();
+    }
+
+    window.onerror = function (message, source, lineno, colno, error) {
+      console.log('window.onerror caught an error');
+      console.log('Message:', message);
+      console.log('Source:', source);
+      console.log('Line:', lineno);
+      console.log('Column:', colno);
+      console.log('Error:', error);
+
+      updateStatus('Global error caught: ' + message);
+
+      if (window.TrackJS && error) {
+        TrackJS.track(error);
+      }
+
+      return false;
+    };
+
+    window.addEventListener('error', event => {
+      console.log('addEventListener error caught:', event.message);
+      console.log('File:', event.filename);
+      console.log('Line:', event.lineno);
+      console.log('Column:', event.colno);
+      console.log('Error object:', event.error);
+    });
   </script>
 </body>
 
